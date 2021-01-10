@@ -10,10 +10,37 @@ var App = (function() {
 
   App.prototype.init = function(){
     var _this = this;
-    $.getJSON('data/appRoutes.json', function(data){
-      console.log('Loaded route data');
-      _this.parseSvg(data);
+
+    $.when(
+      $.getJSON('data/appRoutes.json'),
+      _this.loadHeatmap()
+
+    ).done(function(routeData, imageData){
+      routeData = routeData[0];
+      imageData = imageData[0];
+
+      console.log('Loaded data.');
+      _this.parseSvg(routeData);
     });
+  };
+
+  App.prototype.loadHeatmap = function(){
+    var _this = this;
+    var deferred = $.Deferred();
+    var img = $('#heatmap')[0];
+    var newImg = new Image;
+    newImg.onload = function() {
+      img.src = this.src;
+      var canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      _this.heatmapCtx = ctx;
+      deferred.resolve(true);
+    }
+    newImg.src = 'img/heatmap.png';
+    return deferred.promise();
   };
 
   App.prototype.loadScene = function(w, h, lines, stationCount){
@@ -36,35 +63,54 @@ var App = (function() {
     controls.minDistance = 100;
     controls.maxDistance = 6000;
 
+    var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+    scene.add( light );
+    var lights = [];
+    lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
+    lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
+    lights[ 0 ].position.set( -4000, -4000, 4000 );
+    lights[ 1 ].position.set( 4000, 4000, 4000 );
+    scene.add( lights[ 0 ] );
+    scene.add( lights[ 1 ] );
+
     var offsetX = -w / 2;
     var offsetY = -h / 2;
 
-    // var stations = new THREE.Group();
-    // _.each(lines, function(line){
-    //   _.each(line.stations, function(station){
-    //     var geometry = new THREE.SphereBufferGeometry( 10, 32, 32 );
-    //     var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
-    //     var sphere = new THREE.Mesh( geometry, material );
-    //     sphere.position.set(station.point[0]+offsetX, (h-station.point[1])+offsetY, 0);
-    //     stations.add( sphere );
-    //   });
-    // });
-    // scene.add(stations);
-
     var lineGroup = new THREE.Group();
+    var tubelarRadius = 4;
+    var radialSegments = 16;
+    var samplePoints = [];
     _.each(lines, function(line){
       _.each(line.paths, function(path){
         var points = _.map(path, function(p){
           return new THREE.Vector3(p[0]+offsetX, (h-p[1])+offsetY, p[2]);
         });
+        var tubularSegments = points.length * 8;
         var curve = new THREE.CatmullRomCurve3(points);
-        var tubeGeo = new THREE.TubeBufferGeometry(curve, 64, 8, 8, false);
-        var tubeMat = new THREE.MeshBasicMaterial( { color: '#'+line.color } );
+        var tubeGeo = new THREE.TubeBufferGeometry(curve, tubularSegments, tubelarRadius, radialSegments, false);
+        var tubeMat = new THREE.MeshPhongMaterial( { color: '#'+line.color } );
         var mesh = new THREE.Mesh( tubeGeo, tubeMat );
         lineGroup.add(mesh);
+        samplePoints = samplePoints.concat(curve.getPoints(points.length*8));
       });
     });
     scene.add(lineGroup);
+    // console.log(samplePoints)
+
+    var stations = new THREE.Group();
+    _.each(lines, function(line){
+      _.each(line.stations, function(station){
+        var geometry = new THREE.SphereBufferGeometry( 6, 32, 32 );
+        var material = new THREE.MeshBasicMaterial( {color: 0xdddddd} );
+        var sphere = new THREE.Mesh( geometry, material );
+        var position = new THREE.Vector3(station.point[0]+offsetX, (h-station.point[1])+offsetY, station.point[2]);
+        // find the closest point in the paths
+        var closestPoint = _.min(samplePoints, function(p){ return position.distanceTo(p); });
+        sphere.position.copy(closestPoint);
+        stations.add( sphere );
+      });
+    });
+    scene.add(stations);
 
     var loader = new THREE.TextureLoader();
     loader.load(
@@ -73,8 +119,9 @@ var App = (function() {
       function (mapTexture) {
         var mapTexture = new THREE.TextureLoader().load('img/subway_base_map_texture.png');
         var mapGeometry = new THREE.PlaneBufferGeometry(w, h, 32);
-        var mapMaterial = new THREE.MeshBasicMaterial( { map: mapTexture } );
+        var mapMaterial = new THREE.MeshBasicMaterial( { map: mapTexture, side: THREE.DoubleSide } );
         var map = new THREE.Mesh(mapGeometry, mapMaterial);
+        map.position.setZ(-10);
         scene.add(map);
 
         _this.render();
@@ -88,6 +135,8 @@ var App = (function() {
     var lines = routeData['lines'];
     var width = routeData.width;
     var height = routeData.height;
+    var maxZ = 1000;
+    var heatmapCtx = this.heatmapCtx;
     paths = paths[0];
     console.log('Calculating paths...');
     _.each(paths, function(path){
@@ -103,12 +152,16 @@ var App = (function() {
         return;
       }
       var l = path.getTotalLength();
-      var pointCount = parseInt(l / 2);
+      var pointCount = Math.pow(l, 0.4); // lower this number for less points
+      // console.log(pointCount);
+      pointCount = Math.max(pointCount, 8);
       var points = [];
       for (var i=0; i<pointCount; i++){
         var t = 1.0 * i / (pointCount-1);
         var p = path.getPointAtLength(t * l);
-        points.push([p.x, p.y, 0]);
+        var zdata = heatmapCtx.getImageData(p.x, p.y, 1, 1).data;
+        var z = zdata[0] / 255.0 * maxZ;
+        points.push([p.x, p.y, z]);
       }
 
       if (_.has(lineData, 'paths')) {
@@ -116,6 +169,15 @@ var App = (function() {
       } else {
         lines[lineName].paths = [points];
       }
+    });
+
+    _.each(lines, function(line, lineName){
+      _.each(line.stations, function(station, i){
+        var p = station.point;
+        var zdata = heatmapCtx.getImageData(p[0], p[1], 1, 1).data;
+        var z = zdata[0] / 255.0 * maxZ;
+        lines[lineName].stations[i].point.push(z);
+      });
     });
 
     console.log('Done calculating path.');

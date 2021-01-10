@@ -4,7 +4,9 @@ import csv
 import glob
 import json
 import math
+import numpy as np
 import os
+from scipy.ndimage.filters import gaussian_filter
 
 def createLookup(arr, key):
     return dict([(str(item[key]), item) for item in arr])
@@ -32,6 +34,18 @@ def getFilenames(fileString, verbose=True):
     if verbose:
         print("Found %s files" % fileCount)
     return files
+
+def getHeatmap(xyzs, intensity=204, s=16, bins=1000):
+    a = np.array(xyzs)
+    x, y, z = a.T
+    z = z * intensity
+    heatmap, xedges, yedges = np.histogram2d(x, y, bins=bins, weights=z)
+    heatmap = gaussian_filter(heatmap, sigma=s)
+    extent = tuple([int(xedges[0]), int(yedges[0]), int(xedges[-1]), int(yedges[-1])])
+    pixels = heatmap.T
+    pixels = 255 * pixels
+    pixels = pixels.astype(np.uint8)
+    return pixels, extent
 
 def lim(value, ab=(0, 1)):
     a, b = ab
@@ -106,6 +120,9 @@ def readJSON(filename):
         with open(filename, encoding="utf8") as f:
             data = json.load(f)
     return data
+
+def roundInt(n):
+    return int(round(n))
 
 def translatePoint(p, radians, distance):
     x, y = p

@@ -5,6 +5,7 @@ import json
 from lib import *
 import math
 import os
+from PIL import Image
 from pprint import pprint
 import sys
 
@@ -15,6 +16,7 @@ parser.add_argument('-udata', dest="UROUTE_DATA", default="data/uroutes.json", h
 parser.add_argument('-lines', dest="LINE_DATA", default="data/lines/*.csv", help="Line data files")
 parser.add_argument('-width', dest="WIDTH", default=2700, type=int, help="Width of document")
 parser.add_argument('-height', dest="HEIGHT", default=3314, type=int, help="Height of document")
+parser.add_argument('-heat', dest="OUTPUT_HEAT_FILE", default="img/heatmap.png", help="output heatmap file")
 parser.add_argument('-out', dest="OUTPUT_FILE", default="data/appRoutes.json", help="output file")
 a = parser.parse_args()
 
@@ -110,6 +112,21 @@ for k, d in lines.items():
         })
     lines[k]["stations"] = stations
     stationCount += len(stations)
+
+xyzs = []
+for k, d in lines.items():
+    for i, s in enumerate(d["stations"]):
+        xyzs.append((s["point"][0], s["point"][1], s["nincome"]))
+pixels, extent = getHeatmap(xyzs)
+x0, y0, x1, y1 = extent
+dw = x1 - x0
+dh = y1 - y0
+imData = Image.fromarray(pixels)
+imData = imData.resize((dw, dh))
+
+im = Image.new("L", (a.WIDTH, a.HEIGHT), 0)
+im.paste(imData, box=extent)
+im.save(a.OUTPUT_HEAT_FILE)
 
 jsonOut = {}
 jsonOut["lines"] = lines
