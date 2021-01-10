@@ -9,15 +9,6 @@ var App = (function() {
   }
 
   App.prototype.init = function(){
-    this.loadPanzoom();
-  };
-
-  App.prototype.loadPanzoom = function(){
-    var el = $('#panzoom')[0];
-    var panzoom = Panzoom(el, {
-      maxScale: 5
-    });
-    el.parentElement.addEventListener('wheel', panzoom.zoomWithWheel)
   };
 
   return App;

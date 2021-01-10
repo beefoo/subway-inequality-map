@@ -1,0 +1,3 @@
+sortBy,Station ID,Line,Stop Name,Borough,Daytime Routes,GTFS Latitude,GTFS Longitude,color,tractId1,tractWeight1,tractId2,tractWeight2,income
+4,468,Lexington - Shuttle,Times Sq - 42 St,M,S,40.755983,-73.986229,808183,36061011900,0.698,36061011300,0.302,44663
+5,469,Lexington - Shuttle,Grand Central - 42 St,M,S,40.752769,-73.979189,808183,36061008200,0.66,36061008000,0.34,127481

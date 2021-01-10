@@ -19,12 +19,3 @@ a {
   left: 0;
   overflow: hidden;
 }
-
-#map {
-  width: 150vw;
-  height: auto;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-40%, -50%);
-}

@@ -1,0 +1,4 @@
+sortBy,Station ID,Line,Stop Name,Borough,Daytime Routes,GTFS Latitude,GTFS Longitude,color,tractId1,tractWeight1,tractId2,tractWeight2,income
+1,139,Franklin Shuttle,Franklin Av,Bk,S,40.680596,-73.955827,808183,36047022700,0.85,36047022100,0.15,72623
+2,141,Franklin Shuttle,Park Pl,Bk,S,40.674772,-73.957624,808183,36047021700,0.601,36047030500,0.399,64175
+3,142,Franklin Shuttle,Botanic Garden,Bk,S,40.670343,-73.959245,808183,36047021700,0.629,36047021300,0.371,53637
