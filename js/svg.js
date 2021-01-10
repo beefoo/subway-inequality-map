@@ -8,6 +8,10 @@ var App = (function() {
     this.init();
   }
 
+  function roundToNearest(num, p){
+    return Math.round((num + Number.EPSILON) * p) / p;
+  }
+
   App.prototype.init = function(){
     var _this = this;
 
@@ -22,6 +26,14 @@ var App = (function() {
       console.log('Loaded data.');
       _this.parseSvg(routeData);
     });
+  };
+
+  App.prototype.downloadJson = function(){
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.jsonOut));
+    var dlAnchorElem = document.getElementById('downloadAnchorElem');
+    dlAnchorElem.setAttribute("href",     dataStr     );
+    dlAnchorElem.setAttribute("download", "scene.json");
+    dlAnchorElem.click();
   };
 
   App.prototype.loadHeatmap = function(){
@@ -76,15 +88,28 @@ var App = (function() {
     var offsetX = -w / 2;
     var offsetY = -h / 2;
 
+    var jsonOut = {
+      lines: {},
+      width: w,
+      height: h
+    };
     var lineGroup = new THREE.Group();
     var tubelarRadius = 4;
     var radialSegments = 16;
     var samplePoints = [];
     _.each(lines, function(line){
+      var jsonLine = {
+        id: line.id,
+        color: line.color,
+        paths: [],
+        stations: []
+      }
       _.each(line.paths, function(path){
         var points = _.map(path, function(p){
           return new THREE.Vector3(p[0]+offsetX, (h-p[1])+offsetY, p[2]);
         });
+        var jsonPath = _.map(points, function(p){ return [roundToNearest(p.x, 100), roundToNearest(p.y, 100), roundToNearest(p.z, 100)]; });
+        jsonLine.paths.push(jsonPath);
         var tubularSegments = points.length * 8;
         var curve = new THREE.CatmullRomCurve3(points);
         var tubeGeo = new THREE.TubeBufferGeometry(curve, tubularSegments, tubelarRadius, radialSegments, false);
@@ -93,6 +118,7 @@ var App = (function() {
         lineGroup.add(mesh);
         samplePoints = samplePoints.concat(curve.getPoints(points.length*8));
       });
+      jsonOut.lines[line.id] = jsonLine;
     });
     scene.add(lineGroup);
     // console.log(samplePoints)
@@ -108,6 +134,9 @@ var App = (function() {
         var closestPoint = _.min(samplePoints, function(p){ return position.distanceTo(p); });
         sphere.position.copy(closestPoint);
         stations.add( sphere );
+        station.point = [roundToNearest(closestPoint.x, 100), roundToNearest(closestPoint.y, 100), roundToNearest(closestPoint.z, 100)];
+        station = _.omit(station, 'ndistance', 'nincome');
+        jsonOut.lines[line.id].stations.push(station);
       });
     });
     scene.add(stations);
@@ -127,6 +156,11 @@ var App = (function() {
         _this.render();
       }
     );
+
+    this.jsonOut = jsonOut;
+    $('.download').on('click', function(e){
+      _this.downloadJson();
+    });
   };
 
   App.prototype.parseSvg = function(routeData){
