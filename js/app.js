@@ -29,7 +29,11 @@ var App = (function() {
   };
 
   App.prototype.loadListeners = function(){
+    var _this = this;
 
+    $(window).on('resize', function(){
+      _this.onResize();
+    });
   };
 
   App.prototype.loadScene = function(data){
@@ -45,17 +49,17 @@ var App = (function() {
     this.el.appendChild( renderer.domElement );
     this.renderer = renderer;
 
-    var cameraZ = 4000;
+    var cameraY = 4000;
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 6000 );
-    camera.position.set(0, 0, cameraZ);
+    camera.position.set(0, cameraY, 0);
     camera.lookAt(0, 0, 0);
     this.scene = scene;
     this.camera = camera;
 
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.minDistance = 100;
-    controls.maxDistance = 6000;
+    controls.maxDistance = cameraY;
 
     // create lights
     var light = new THREE.AmbientLight( 0x404040 ); // soft white light
@@ -63,8 +67,8 @@ var App = (function() {
     var lights = [];
     lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
     lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
-    lights[ 0 ].position.set( -cameraZ, -cameraZ, cameraZ );
-    lights[ 1 ].position.set( cameraZ, cameraZ, cameraZ );
+    lights[ 0 ].position.set( -cameraY, cameraY, -cameraY );
+    lights[ 1 ].position.set( cameraY, cameraY, cameraY );
     scene.add( lights[ 0 ] );
     scene.add( lights[ 1 ] );
 
@@ -76,7 +80,7 @@ var App = (function() {
       lines[key].pathMeshes = [];
       _.each(line.paths, function(path){
         var points = _.map(path, function(p){
-          return new THREE.Vector3(p[0], p[1], p[2]);
+          return new THREE.Vector3(p[0], p[2], -p[1]);
         });
         var tubularSegments = points.length * 8;
         var curve = new THREE.CatmullRomCurve3(points);
@@ -96,7 +100,7 @@ var App = (function() {
         var geometry = new THREE.SphereBufferGeometry( 6, 32, 32 );
         var material = new THREE.MeshBasicMaterial( {color: 0xdddddd, transparent: true} );
         var sphere = new THREE.Mesh( geometry, material );
-        var position = new THREE.Vector3(station.point[0], station.point[1], station.point[2]);
+        var position = new THREE.Vector3(station.point[0], station.point[2], -station.point[1]);
         sphere.material.opacity = 0;
         sphere.visible = false;
         sphere.position.copy(position);
@@ -114,12 +118,22 @@ var App = (function() {
         var mapGeometry = new THREE.PlaneBufferGeometry(w, h, 32);
         var mapMaterial = new THREE.MeshBasicMaterial( { map: mapTexture, side: THREE.DoubleSide } );
         var map = new THREE.Mesh(mapGeometry, mapMaterial);
-        map.position.setZ(-10);
+        map.rotation.x = - Math.PI / 2;
+        map.position.setY(-10);
         scene.add(map);
         _this.render();
+        _this.loadListeners();
         _this.$el.addClass('active');
       }
     );
+  };
+
+  App.prototype.onResize = function(){
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
   };
 
   App.prototype.render = function(){
