@@ -17,6 +17,12 @@ p {
   font-size: 1.2rem;
   line-height: 1.4;
 }
+hr {
+  border: 0;
+  height: 1px;
+  background: #666;
+  margin: 1rem 0;
+}
 
 .wrapper {
   position: absolute;

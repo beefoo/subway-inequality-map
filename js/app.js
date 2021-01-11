@@ -62,7 +62,7 @@ var App = (function() {
 
     var cameraY = 4000;
     var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, 6000 );
+    var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, 10000 );
     camera.position.set(0, cameraY, 0);
     camera.lookAt(0, 0, 0);
     this.scene = scene;
@@ -70,19 +70,25 @@ var App = (function() {
 
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.minDistance = 100;
-    controls.maxDistance = cameraY;
+    controls.maxDistance = cameraY + 1000;
     controls.maxPolarAngle = Math.PI / 2;
 
     // create lights
     var light = new THREE.AmbientLight( 0x404040 ); // soft white light
     scene.add( light );
     var lights = [];
-    lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
-    lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.667, 0 );
+    lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.33, 0 );
+    lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.33, 0 );
+    lights[ 2 ] = new THREE.PointLight( 0xffffff, 0.33, 0 );
+    lights[ 3 ] = new THREE.PointLight( 0xffffff, 0.33, 0 );
     lights[ 0 ].position.set( -cameraY, cameraY, -cameraY );
     lights[ 1 ].position.set( cameraY, cameraY, cameraY );
+    lights[ 2 ].position.set( -cameraY, cameraY, cameraY );
+    lights[ 3 ].position.set( cameraY, cameraY, -cameraY );
     scene.add( lights[ 0 ] );
     scene.add( lights[ 1 ] );
+    scene.add( lights[ 2 ] );
+    scene.add( lights[ 3 ] );
 
     // draw lines
     var lineGroup = new THREE.Group();
