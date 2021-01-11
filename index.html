@@ -23,10 +23,30 @@
 
 <body>
 
-  <div id="app" class="app">
-    <div class="loading">
-      <div></div><div></div><div></div><div></div>
+  <div class="wrapper">
+
+    <div id="app" class="app">
+      <div class="loading">
+        <div></div><div></div><div></div><div></div>
+      </div>
     </div>
+
+    <div class="menu active">
+      <h1>Warped Lines</h1>
+      <p>
+        A 3D map of income equality on the New York City subway. The "height" of the subway lines correspond to the median household income of the surrounding area. <strong>Select a line to see more details:</strong>
+      </p>
+      <p id="buttons" class="buttons">
+      </p>
+      <div class="credits">
+        <p>
+          Created by <a href="https://brianfoo.com">Brian Foo</a> using <a href="https://factfinder.census.gov/">Median household income by census tract, 2017 ACS 5-year estimates (B19013)</a>
+          and <a href="http://web.mta.info/developers/data/nyct/subway/Stations.csv">MTA subway station data</a>. <a href="https://github.com/beefoo/subway-inequality-map">Code</a> is open source.
+        </p>
+      </div>
+      <button class="toggle-menu">Close panel</button>
+    </div>
+
   </div>
 
   <script src="js/vendor/jquery-3.5.1.min.js"></script>

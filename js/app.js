@@ -19,7 +19,7 @@ var App = (function() {
       this.loadData()
 
     ).done(function(data){
-
+      _this.loadUI(data);
       _this.loadScene(data);
     });
   };
@@ -34,6 +34,15 @@ var App = (function() {
     $(window).on('resize', function(){
       _this.onResize();
     });
+
+    $('.toggle-menu').on('click', function(){
+      _this.toggleMenu();
+    });
+
+    $('.select-line').on('click', function(){
+      _this.selectLine($(this));
+    });
+
   };
 
   App.prototype.loadScene = function(data){
@@ -43,15 +52,17 @@ var App = (function() {
     var lines = data.lines;
 
     var renderer = new THREE.WebGLRenderer({ antialias: true });
+    var elW = this.$el.width();
+    var elH = this.$el.height();
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setClearColor( 0x000000, 0.0 );
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( elW, elH );
     this.el.appendChild( renderer.domElement );
     this.renderer = renderer;
 
     var cameraY = 4000;
     var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 6000 );
+    var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, 6000 );
     camera.position.set(0, cameraY, 0);
     camera.lookAt(0, 0, 0);
     this.scene = scene;
@@ -60,6 +71,7 @@ var App = (function() {
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.minDistance = 100;
     controls.maxDistance = cameraY;
+    controls.maxPolarAngle = Math.PI / 2;
 
     // create lights
     var light = new THREE.AmbientLight( 0x404040 ); // soft white light
@@ -109,6 +121,7 @@ var App = (function() {
       });
     });
     scene.add(stations);
+    this.lines = lines;
 
     var loader = new THREE.TextureLoader();
     loader.load(
@@ -128,9 +141,25 @@ var App = (function() {
     );
   };
 
+  App.prototype.loadUI = function(data){
+    var lines = data.lines;
+    var $buttons = $('#buttons');
+
+    var html = '';
+    _.each(lines, function(line){
+      var name = ''+line.id;
+      var classNames = [];
+      if (name.length > 1) classNames.push('small-text');
+      if (name == 'N' || name == 'R' || name == 'Q' || name=='W') classNames.push('invert-text');
+      classNames = classNames.join(' ');
+      html += '<button class="select-line '+classNames+'" style="background: #'+line.color+'">'+name+'</button>';
+    });
+    $buttons.html(html);
+  };
+
   App.prototype.onResize = function(){
-    var w = window.innerWidth;
-    var h = window.innerHeight;
+    var w = this.$el.width();
+    var h = this.$el.height();
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
@@ -144,6 +173,29 @@ var App = (function() {
     requestAnimationFrame(function(){
       _this.render();
     });
+  };
+
+  App.prototype.selectLine = function($button){
+    var isSelected = $button.hasClass('selected');
+    $('.select-line').removeClass('selected hidden');
+    if (!isSelected) {
+      $('.select-line').addClass('hidden');
+      $button.addClass('selected');
+    }
+  };
+
+  App.prototype.toggleMenu = function(){
+    var $menu = $('.menu');
+    var $link = $('.toggle-menu');
+    var isActive = $menu.hasClass('active');
+
+    if (isActive) {
+      $menu.removeClass('active');
+      $link.text('Show details & menu');
+    } else {
+      $menu.addClass('active');
+      $link.text('Close panel');
+    }
   };
 
   return App;
