@@ -7,7 +7,8 @@ var App = (function() {
       dataUrl: 'data/sceneData.json',
       introDuration: 3000,
       transitionDuration: 1000,
-      cameraDistance: 4000
+      cameraDistance: 4000,
+      inactiveLineOpacity: 0.2
     };
     this.opt = _.extend({}, defaults, config);
     this.init();
@@ -134,6 +135,8 @@ var App = (function() {
         var tubeMat = new THREE.MeshPhongMaterial( { color: '#'+line.color, transparent: true } );
         var mesh = new THREE.Mesh( tubeGeo, tubeMat );
         lines[key].pathMeshes.push(mesh);
+        lines[key].lineOpacity = 1.0;
+        lines[key].targetLineOpacity = 1.0;
         lineGroup.add(mesh);
       });
     });
@@ -153,6 +156,8 @@ var App = (function() {
         stations.add( sphere );
         lines[key].stations[i].mesh = sphere;
       });
+      lines[key].stationOpacity = 0;
+      lines[key].targetStationOpacity = 0;
     });
     scene.add(stations);
     this.lines = lines;
@@ -225,6 +230,11 @@ var App = (function() {
       this.controls.update();
     }
 
+    // line selection transition
+    if (this.lineTransitioning) {
+      this.renderLineTransition();
+    }
+
     this.renderer.render( this.scene, this.camera );
 
     requestAnimationFrame(function(){
@@ -251,13 +261,76 @@ var App = (function() {
     }
   };
 
+  App.prototype.renderLineTransition = function(){
+    var _this = this;
+    var now = new Date().getTime();
+    var t = norm(now, this.lineTransitionStartTime, this.lineTransitionEndTime);
+
+    _.each(this.lines, function(line, lineName){
+
+      // update lines
+      var lineNeedUpdate = (line.targetLineOpacity != line.lineOpacity);
+      if (lineNeedUpdate) {
+        var lineOpacity = lerp(line.startLineOpacity, line.targetLineOpacity, t);
+        _this.lines[lineName].lineOpacity = lineOpacity;
+        // update line meshes
+        _.each(line.pathMeshes, function(mesh){
+          if (mesh.material.opacity != lineOpacity) {
+            mesh.material.opacity = lineOpacity;
+            mesh.material.needsUpdate = true;
+          }
+        });
+      }
+
+      // update stations
+      var stationsNeedUpdate = (line.targetStationOpacity != line.stationOpacity);
+      if (stationsNeedUpdate) {
+        var stationOpacity = lerp(line.startStationOpacity, line.targetStationOpacity, t);
+        _this.lines[lineName].stationOpacity = stationOpacity;
+        _.each(line.stations, function(station, i){
+          var mesh = station.mesh;
+          if (mesh.material.opacity != stationOpacity) {
+            mesh.material.opacity = stationOpacity;
+            mesh.material.needsUpdate = true;
+          }
+          if (stationOpacity <= 0) {
+            mesh.visible = false;
+          } else {
+            mesh.visible = true;
+          }
+        });
+      }
+
+    });
+
+    if (t >= 1.0) {
+      this.lineTransitioning = false;
+    }
+  };
+
   App.prototype.selectLine = function($button){
+    if (this.lineTransitioning === true) return;
+
+    var _this = this;
     var isSelected = $button.hasClass('selected');
+    var selectedLine = false;
     $('.select-line').removeClass('selected hidden');
     if (!isSelected) {
       $('.select-line').addClass('hidden');
       $button.addClass('selected');
+      selectedLine = $button.text().trim();
     }
+
+    this.lineTransitionStartTime = new Date().getTime();
+    this.lineTransitionEndTime = this.lineTransitionStartTime + this.opt.transitionDuration;
+    this.lineTransitioning = true;
+    var inactiveLineOpacity = this.opt.inactiveLineOpacity;
+    _.each(this.lines, function(line, lineName){
+      _this.lines[lineName].startLineOpacity = line.lineOpacity;
+      _this.lines[lineName].startStationOpacity = line.stationOpacity;
+      _this.lines[lineName].targetLineOpacity = lineName === selectedLine || selectedLine === false ? 1.0 : inactiveLineOpacity;
+      _this.lines[lineName].targetStationOpacity = lineName === selectedLine || selectedLine === false ? 1.0 : 0;
+    });
   };
 
   App.prototype.toggleMenu = function(){
