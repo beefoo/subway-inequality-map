@@ -107,7 +107,9 @@ hr {
 .select-line.selected {
   opacity: 1;
 }
-
+.instructions {
+  color: #FCCC0A;
+}
 @media (max-aspect-ratio: 4/3) {
   .app {
     width: 100%;
@@ -198,4 +200,22 @@ hr {
   100% {
     transform: translate(24px, 0);
   }
+}
+
+.toggle-autorotation {
+  border: none;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 10000;
+  display: block;
+  padding: 0.5rem 1rem;
+  background: #801e17;
+  color: white;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+}
+.app.started .toggle-autorotation {
+  opacity: 1;
 }

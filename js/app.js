@@ -4,10 +4,32 @@ var App = (function() {
 
   function App(config) {
     var defaults = {
-      dataUrl: 'data/sceneData.json'
+      dataUrl: 'data/sceneData.json',
+      introDuration: 3000,
+      transitionDuration: 1000,
+      cameraDistance: 4000
     };
     this.opt = _.extend({}, defaults, config);
     this.init();
+  }
+
+  function ease(t){
+    return (Math.sin((t+1.5)*Math.PI)+1.0) / 2.0;
+  }
+
+  function lerp(a, b, t) {
+    return (1.0*b - a) * t + a;
+  }
+
+  function norm(value, a, b){
+    var denom = (b - a);
+    var t = 0;
+    if (denom > 0 || denom < 0) {
+      t = (1.0 * value - a) / denom;
+    }
+    if (t < 0) t = 0;
+    if (t > 1.0) t = 1.0;
+    return t;
   }
 
   App.prototype.init = function(){
@@ -39,6 +61,10 @@ var App = (function() {
       _this.toggleMenu();
     });
 
+    $('.toggle-autorotation').on('click', function(){
+      _this.toggleAutorotation();
+    });
+
     $('.select-line').on('click', function(){
       _this.selectLine($(this));
     });
@@ -60,9 +86,9 @@ var App = (function() {
     this.el.appendChild( renderer.domElement );
     this.renderer = renderer;
 
-    var cameraY = 4000;
+    var cameraY = this.opt.cameraDistance;
     var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, 10000 );
+    var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, cameraY + 6000 );
     camera.position.set(0, cameraY, 0);
     camera.lookAt(0, 0, 0);
     this.scene = scene;
@@ -72,6 +98,8 @@ var App = (function() {
     controls.minDistance = 100;
     controls.maxDistance = cameraY + 1000;
     controls.maxPolarAngle = Math.PI / 2;
+    controls.enabled = false;
+    this.controls = controls;
 
     // create lights
     var light = new THREE.AmbientLight( 0x404040 ); // soft white light
@@ -140,9 +168,7 @@ var App = (function() {
         map.rotation.x = - Math.PI / 2;
         map.position.setY(-10);
         scene.add(map);
-        _this.render();
-        _this.loadListeners();
-        _this.$el.addClass('active');
+        _this.onSceneLoaded();
       }
     );
   };
@@ -163,6 +189,14 @@ var App = (function() {
     $buttons.html(html);
   };
 
+  App.prototype.onIntroFinished = function(){
+    this.loadListeners();
+    this.controls.enabled = true;
+    this.controls.autoRotate = true;
+    this.controls.autoRotateSpeed = 1.0;
+    this.$el.addClass('started');
+  };
+
   App.prototype.onResize = function(){
     var w = this.$el.width();
     var h = this.$el.height();
@@ -171,14 +205,50 @@ var App = (function() {
     this.renderer.setSize(w, h);
   };
 
+  App.prototype.onSceneLoaded = function(){
+    console.log('Scene loaded.');
+
+    this.introStartTime = new Date().getTime() + 3000;
+    this.introEndTime = this.introStartTime + this.opt.introDuration;
+    this.introFinished = false;
+    this.$el.addClass('active');
+    this.render();
+  };
+
   App.prototype.render = function(){
     var _this = this;
+
+    // intro animation
+    if (!this.introFinished) {
+      this.renderIntro();
+    } else {
+      this.controls.update();
+    }
 
     this.renderer.render( this.scene, this.camera );
 
     requestAnimationFrame(function(){
       _this.render();
     });
+  };
+
+  App.prototype.renderIntro = function(){
+    var now = new Date().getTime();
+    var t = norm(now, this.introStartTime, this.introEndTime);
+    t = ease(t);
+    if (t <= 0) t = 0.00001;
+
+    var r = this.opt.cameraDistance;
+    var rad = lerp(Math.PI/2, Math.PI * 0.8, t);
+    var z = r * Math.cos(rad);
+    var y = r * Math.sin(rad);
+    this.camera.position.set(0, y, -z);
+    this.camera.lookAt(0, 0, 0);
+
+    if (now >= this.introEndTime) {
+      this.introFinished = true;
+      this.onIntroFinished();
+    }
   };
 
   App.prototype.selectLine = function($button){
@@ -201,6 +271,21 @@ var App = (function() {
     } else {
       $menu.addClass('active');
       $link.text('Close panel');
+    }
+  };
+
+  App.prototype.toggleAutorotation = function(){
+    var $button = $('.toggle-autorotation');
+    var isActive = $button.hasClass('active');
+
+    if (isActive) {
+      $button.removeClass('active');
+      this.controls.autoRotate = false;
+      $button.text('Turn on auto-rotation');
+    } else {
+      $button.addClass('active');
+      this.controls.autoRotate = true;
+      $button.text('Turn off auto-rotation');
     }
   };
 
