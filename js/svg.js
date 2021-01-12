@@ -96,14 +96,14 @@ var App = (function() {
     var lineGroup = new THREE.Group();
     var tubelarRadius = 4;
     var radialSegments = 16;
-    var samplePoints = [];
-    _.each(lines, function(line){
+    _.each(lines, function(line, lineName){
       var jsonLine = {
         id: line.id,
         color: line.color,
         paths: [],
         stations: []
       }
+      var samplePoints = [];
       _.each(line.paths, function(path){
         var points = _.map(path.points, function(p){
           return new THREE.Vector3(p[0]+offsetX, (h-p[1])+offsetY, p[2]);
@@ -116,11 +116,12 @@ var App = (function() {
         var tubeMat = new THREE.MeshPhongMaterial( { color: '#'+line.color } );
         var mesh = new THREE.Mesh( tubeGeo, tubeMat );
         lineGroup.add(mesh);
-        if (!path.isContinuous) {
+        if (path.isContinuous || !line.hasContinuousLineVersion) {
           samplePoints = samplePoints.concat(curve.getPoints(points.length*8));
         }
       });
       jsonOut.lines[line.id] = jsonLine;
+      lines[lineName].samplePoints = samplePoints;
     });
     scene.add(lineGroup);
     // console.log(samplePoints)
@@ -133,7 +134,7 @@ var App = (function() {
         var sphere = new THREE.Mesh( geometry, material );
         var position = new THREE.Vector3(station.point[0]+offsetX, (h-station.point[1])+offsetY, station.point[2]);
         // find the closest point in the paths
-        var closestPoint = _.min(samplePoints, function(p){ return position.distanceTo(p); });
+        var closestPoint = _.min(line.samplePoints, function(p){ return position.distanceTo(p); });
         sphere.position.copy(closestPoint);
         stations.add( sphere );
         station.point = [roundToNearest(closestPoint.x, 100), roundToNearest(closestPoint.y, 100), roundToNearest(closestPoint.z, 100)];
@@ -216,6 +217,8 @@ var App = (function() {
         var z = zdata[0] / 255.0 * maxZ;
         lines[lineName].stations[i].point.push(z);
       });
+      var continuousPaths = _.filter(lines.paths, function(path){ return path.isContinuous; });
+      lines[lineName].hasContinuousLineVersion = (continuousPaths.length > 0);
     });
 
     console.log('Done calculating path.');

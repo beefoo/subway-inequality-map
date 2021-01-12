@@ -154,7 +154,7 @@ var App = (function() {
     var stations = new THREE.Group();
     _.each(lines, function(line, key){
       _.each(line.stations, function(station, i){
-        var geometry = new THREE.SphereBufferGeometry( 6, 32, 32 );
+        var geometry = new THREE.SphereBufferGeometry( 10, 32, 32 );
         var material = new THREE.MeshBasicMaterial( {color: 0xdddddd, transparent: true} );
         var sphere = new THREE.Mesh( geometry, material );
         var position = new THREE.Vector3(station.point[0], station.point[2], -station.point[1]);
