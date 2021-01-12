@@ -105,18 +105,20 @@ var App = (function() {
         stations: []
       }
       _.each(line.paths, function(path){
-        var points = _.map(path, function(p){
+        var points = _.map(path.points, function(p){
           return new THREE.Vector3(p[0]+offsetX, (h-p[1])+offsetY, p[2]);
         });
         var jsonPath = _.map(points, function(p){ return [roundToNearest(p.x, 100), roundToNearest(p.y, 100), roundToNearest(p.z, 100)]; });
-        jsonLine.paths.push(jsonPath);
+        jsonLine.paths.push({isContinuous: path.isContinuous, points: jsonPath});
         var tubularSegments = points.length * 8;
         var curve = new THREE.CatmullRomCurve3(points);
         var tubeGeo = new THREE.TubeBufferGeometry(curve, tubularSegments, tubelarRadius, radialSegments, false);
         var tubeMat = new THREE.MeshPhongMaterial( { color: '#'+line.color } );
         var mesh = new THREE.Mesh( tubeGeo, tubeMat );
         lineGroup.add(mesh);
-        samplePoints = samplePoints.concat(curve.getPoints(points.length*8));
+        if (!path.isContinuous) {
+          samplePoints = samplePoints.concat(curve.getPoints(points.length*8));
+        }
       });
       jsonOut.lines[line.id] = jsonLine;
     });
@@ -180,6 +182,7 @@ var App = (function() {
       var id = $parent.attr('id');
       var parts = id.split('-');
       var lineName = parts[1];
+      var isContinuous = (parts.length > 2);
       var lineData = lines[lineName];
       if (lineData === undefined){
         console.log('Could not find '+lineName+' in line data.')
@@ -198,10 +201,11 @@ var App = (function() {
         points.push([p.x, p.y, z]);
       }
 
+      var entry = {isContinuous: isContinuous, points: points};
       if (_.has(lineData, 'paths')) {
-        lines[lineName].paths.push(points);
+        lines[lineName].paths.push(entry);
       } else {
-        lines[lineName].paths = [points];
+        lines[lineName].paths = [entry];
       }
     });
 

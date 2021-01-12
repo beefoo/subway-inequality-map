@@ -124,9 +124,10 @@ var App = (function() {
     var tubelarRadius = 4;
     var radialSegments = 16;
     _.each(lines, function(line, key){
-      lines[key].pathMeshes = [];
-      _.each(line.paths, function(path){
-        var points = _.map(path, function(p){
+      lines[key].hasContinuousLineVersion = false;
+      _.each(line.paths, function(path, i){
+        var isContinuous = path.isContinuous;
+        var points = _.map(path.points, function(p){
           return new THREE.Vector3(p[0], p[2], -p[1]);
         });
         var tubularSegments = points.length * 8;
@@ -134,9 +135,16 @@ var App = (function() {
         var tubeGeo = new THREE.TubeBufferGeometry(curve, tubularSegments, tubelarRadius, radialSegments, false);
         var tubeMat = new THREE.MeshPhongMaterial( { color: '#'+line.color, transparent: true } );
         var mesh = new THREE.Mesh( tubeGeo, tubeMat );
-        lines[key].pathMeshes.push(mesh);
-        lines[key].lineOpacity = 1.0;
-        lines[key].targetLineOpacity = 1.0;
+        var opacity = 1.0;
+        if (isContinuous) {
+          opacity = 0;
+          mesh.material.opacity = 0;
+          mesh.visible = false;
+          lines[key].hasContinuousLineVersion = true;
+        }
+        lines[key].paths[i].mesh = mesh;
+        lines[key].paths[i].opacity = opacity;
+        lines[key].paths[i].targetOpacity = opacity;
         lineGroup.add(mesh);
       });
     });
@@ -269,18 +277,23 @@ var App = (function() {
     _.each(this.lines, function(line, lineName){
 
       // update lines
-      var lineNeedUpdate = (line.targetLineOpacity != line.lineOpacity);
-      if (lineNeedUpdate) {
-        var lineOpacity = lerp(line.startLineOpacity, line.targetLineOpacity, t);
-        _this.lines[lineName].lineOpacity = lineOpacity;
-        // update line meshes
-        _.each(line.pathMeshes, function(mesh){
+      _.each(line.paths, function(path, i){
+        var lineNeedUpdate = (path.targetOpacity != path.opacity);
+        if (lineNeedUpdate) {
+          var lineOpacity = lerp(path.startOpacity, path.targetOpacity, t);
+          _this.lines[lineName].paths[i].opacity = lineOpacity;
+          var mesh = path.mesh;
           if (mesh.material.opacity != lineOpacity) {
             mesh.material.opacity = lineOpacity;
             mesh.material.needsUpdate = true;
           }
-        });
-      }
+          if (lineOpacity <= 0) {
+            mesh.visible = false;
+          } else {
+            mesh.visible = true;
+          }
+        }
+      });
 
       // update stations
       var stationsNeedUpdate = (line.targetStationOpacity != line.stationOpacity);
@@ -326,10 +339,20 @@ var App = (function() {
     this.lineTransitioning = true;
     var inactiveLineOpacity = this.opt.inactiveLineOpacity;
     _.each(this.lines, function(line, lineName){
-      _this.lines[lineName].startLineOpacity = line.lineOpacity;
+      _.each(line.paths, function(path, i){
+        var isSelected = (lineName === selectedLine);
+        var targetOpacity = isSelected || selectedLine === false ? 1.0 : inactiveLineOpacity;
+        if (line.hasContinuousLineVersion && !path.isContinuous) {
+          targetOpacity = selectedLine === false ? 1.0 : inactiveLineOpacity;
+          if (isSelected) targetOpacity = 0;
+        } else if (path.isContinuous) {
+          targetOpacity = isSelected ? 1.0 : 0;
+        }
+        _this.lines[lineName].paths[i].startOpacity = path.opacity;
+        _this.lines[lineName].paths[i].targetOpacity = targetOpacity;
+      });
       _this.lines[lineName].startStationOpacity = line.stationOpacity;
-      _this.lines[lineName].targetLineOpacity = lineName === selectedLine || selectedLine === false ? 1.0 : inactiveLineOpacity;
-      _this.lines[lineName].targetStationOpacity = lineName === selectedLine || selectedLine === false ? 1.0 : 0;
+      _this.lines[lineName].targetStationOpacity = lineName === selectedLine ? 1.0 : 0;
     });
   };
 

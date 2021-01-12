@@ -80,6 +80,7 @@ for fn in lineFiles:
         # add point to lines
         for i, fLine in enumerate(fLines):
             fLines[i]["point"] = routeStations[i]["point"]
+            fLines[i]["routes"] = routeStations[i]["routes"]
         # get income
         incomes = [fLine["income"] for fLine in fLines]
         maxIncome = max(incomes) if maxIncome is None else max(max(incomes), maxIncome)
@@ -108,7 +109,8 @@ for k, d in lines.items():
             "income": s["income"],
             "ndistance": 1.0 * s["distance"] / totalDistance,
             "nincome": norm(s["income"], (minIncome, maxIncome)),
-            "point": s["point"]
+            "point": s["point"],
+            "routes": s["routes"]
         })
     lines[k]["stations"] = stations
     stationCount += len(stations)
