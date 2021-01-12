@@ -37,16 +37,17 @@ for i, route in enumerate(routes):
         routes[i]["stations"][j].update(ustation)
 
     stations = routes[i]["stations"]
-    groups = [[s.copy() for s in stations]]
+    # groups = [[s.copy() for s in stations]]
     # check if we have groups that we need to break up
-    if "groups" in route and len(route["groups"]) > 0:
-        groups = []
-        for group in route["groups"]:
-            gstations = [s.copy() for s in stations if "groups" in s and group in s["groups"]]
-            groups.append(gstations)
-    # take the first group
-    routes[i]["groups"] = groups
-    routes[i]["stations"] = groups[0]
+    # if "groups" in route and len(route["groups"]) > 0:
+    #     groups = []
+    #     for group in route["groups"]:
+    #         gstations = [s.copy() for s in stations if "groups" in s and group in s["groups"]]
+    #         groups.append(gstations)
+    # # take the first group
+    # routes[i]["groups"] = groups
+    # routes[i]["stations"] = groups[0]
+    routes[i]["stations"] = [s.copy() for s in stations]
 routeLookup = createLookup(routes, "id")
 
 lineFiles = getFilenames(a.LINE_DATA)

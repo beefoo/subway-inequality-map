@@ -217,7 +217,7 @@ var App = (function() {
         var z = zdata[0] / 255.0 * maxZ;
         lines[lineName].stations[i].point.push(z);
       });
-      var continuousPaths = _.filter(lines.paths, function(path){ return path.isContinuous; });
+      var continuousPaths = _.filter(line.paths, function(path){ return path.isContinuous; });
       lines[lineName].hasContinuousLineVersion = (continuousPaths.length > 0);
     });
 
