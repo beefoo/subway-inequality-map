@@ -86,10 +86,12 @@ for fn in lineFiles:
         incomes = [fLine["income"] for fLine in fLines]
         maxIncome = max(incomes) if maxIncome is None else max(max(incomes), maxIncome)
         minIncome = min(incomes) if minIncome is None else min(min(incomes), minIncome)
+        textColor = "000000" if lineName in ("N", "Q", "R", "W") else "FFFFFF"
         lines[lineName] = {
             "id": lineName,
             "stations": fLines,
-            "color": fLines[0]["color"]
+            "color": fLines[0]["color"],
+            "textColor": textColor
         }
 
 stationCount = 0

@@ -6,7 +6,7 @@ var App = (function() {
     var defaults = {
       dataUrl: 'data/sceneData.json',
       introDuration: 3000,
-      transitionDuration: 1000,
+      transitionDuration: 600,
       cameraDistance: 4000,
       inactiveLineOpacity: 0.2
     };
@@ -37,6 +37,7 @@ var App = (function() {
     var _this = this;
     this.$el = $('#app');
     this.el = this.$el[0];
+    this.interacted = false;
 
     $.when(
       this.loadData()
@@ -68,6 +69,11 @@ var App = (function() {
 
     $('.select-line').on('click', function(){
       _this.selectLine($(this));
+    });
+
+    $('#app canvas').one('click mousedown pointerdown touchstart', function(e){
+      _this.interacted = true;
+      $('.drag-icon').removeClass('active');
     });
 
   };
@@ -155,7 +161,7 @@ var App = (function() {
     _.each(lines, function(line, key){
       _.each(line.stations, function(station, i){
         var geometry = new THREE.SphereBufferGeometry( 10, 32, 32 );
-        var material = new THREE.MeshBasicMaterial( {color: 0xdddddd, transparent: true} );
+        var material = new THREE.MeshBasicMaterial( {color: '#'+line.textColor, transparent: true} );
         var sphere = new THREE.Mesh( geometry, material );
         var position = new THREE.Vector3(station.point[0], station.point[2], -station.point[1]);
         sphere.material.opacity = 0;
@@ -195,18 +201,19 @@ var App = (function() {
       var name = ''+line.id;
       var classNames = [];
       if (name.length > 1) classNames.push('small-text');
-      if (name == 'N' || name == 'R' || name == 'Q' || name=='W') classNames.push('invert-text');
+      // if (name == 'N' || name == 'R' || name == 'Q' || name=='W') classNames.push('invert-text');
       classNames = classNames.join(' ');
-      html += '<button class="select-line '+classNames+'" style="background: #'+line.color+'">'+name+'</button>';
+      html += '<button class="select-line '+classNames+'" style="background: #'+line.color+'; color: #'+line.textColor+'">'+name+'</button>';
     });
     $buttons.html(html);
   };
 
   App.prototype.onIntroFinished = function(){
+    $('.drag-icon').addClass('active');
     this.loadListeners();
     this.controls.enabled = true;
-    this.controls.autoRotate = true;
-    this.controls.autoRotateSpeed = 1.0;
+    // this.controls.autoRotate = true;
+    // this.controls.autoRotateSpeed = 1.0;
     this.$el.addClass('started');
   };
 
@@ -257,10 +264,17 @@ var App = (function() {
     if (t <= 0) t = 0.00001;
 
     var r = this.opt.cameraDistance;
-    var rad = lerp(Math.PI/2, Math.PI * 0.8, t);
-    var z = r * Math.cos(rad);
-    var y = r * Math.sin(rad);
-    this.camera.position.set(0, y, -z);
+    var pitch = lerp(Math.PI/2, Math.PI * 0.9, t);
+    var yaw = lerp(0, Math.PI/8, t);
+
+    // var z = r * Math.cos(rad);
+    // var y = r * Math.sin(rad);
+
+    var x = r * Math.sin(yaw) * Math.cos(pitch)
+    var y = r * Math.sin(pitch)
+    var z = r * Math.cos(yaw) * Math.cos(pitch)
+
+    this.camera.position.set(x, y, -z);
     this.camera.lookAt(0, 0, 0);
 
     if (now >= this.introEndTime) {

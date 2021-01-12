@@ -100,6 +100,7 @@ var App = (function() {
       var jsonLine = {
         id: line.id,
         color: line.color,
+        textColor: line.textColor,
         paths: [],
         stations: []
       }
