@@ -32,31 +32,51 @@
       <!-- <button class="toggle-autorotation active">Turn off auto-rotation</button> -->
     </div>
 
-    <div class="menu active">
-      <h1>Warped Lines</h1>
-      <p>
-        A 3D map of income equality on the New York City subway. The "height" of the subway lines correspond to the median household income of the surrounding area. <strong>Select a line to see more details:</strong>
-      </p>
-      <p id="buttons" class="buttons">
-      </p>
-
-      <div class="instructions">
+    <div id="menu" class="menu active">
+      <div class="description">
+        <h1>Warped Lines</h1>
         <p>
-          Drag cursor on map to rotate. Pinch or scroll to zoom. Right-click or use two fingers to pan.
+          A 3D map of income equality on the New York City subway. The "height" of the subway lines correspond to the median household income of the surrounding area. <strong class="hide-before-start">Select a line to see more details:</strong>
         </p>
-        <div class="drag-icon">
-          <img src="img/drag_icon_AomAm_from_the_Noun_Project.png" alt="Finger icon with dragging arrows" />
+      </div>
+
+      <div class="hide-before-start">
+        <div class="line-on">
+          <button class="deselect-lines">&larr; Reset</button>
+        </div>
+
+        <p id="buttons" class="buttons">
+        </p>
+
+        <div class="instructions line-off">
+          <p>
+            Drag cursor on map to rotate. Pinch or scroll to zoom. Right-click or use two fingers to pan.
+          </p>
+          <div class="drag-icon">
+            <img src="img/drag_icon_AomAm_from_the_Noun_Project.png" alt="Finger icon with dragging arrows" />
+          </div>
+        </div>
+
+        <div class="instructions line-on">
+          <p>
+            Select a station below to zoom view it on the map.
+          </p>
+        </div>
+
+        <div id="stations-container" class="stations-container line-on">
+
+        </div>
+
+        <hr />
+
+        <div class="credits">
+          <p>
+            Created by <a href="https://brianfoo.com">Brian Foo</a> using <a href="https://factfinder.census.gov/">Median household income by census tract, 2017 ACS 5-year estimates (B19013)</a>
+            and <a href="http://web.mta.info/developers/data/nyct/subway/Stations.csv">MTA subway station data</a>. <a href="https://github.com/beefoo/subway-inequality-map">Code</a> is open source.
+          </p>
         </div>
       </div>
 
-      <hr />
-
-      <div class="credits">
-        <p>
-          Created by <a href="https://brianfoo.com">Brian Foo</a> using <a href="https://factfinder.census.gov/">Median household income by census tract, 2017 ACS 5-year estimates (B19013)</a>
-          and <a href="http://web.mta.info/developers/data/nyct/subway/Stations.csv">MTA subway station data</a>. <a href="https://github.com/beefoo/subway-inequality-map">Code</a> is open source.
-        </p>
-      </div>
       <button class="toggle-menu">Close panel</button>
     </div>
 

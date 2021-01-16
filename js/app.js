@@ -14,8 +14,20 @@ var App = (function() {
     this.init();
   }
 
+  var boroughs = {
+    'Bx': 'Bronx',
+    'Bk': 'Brooklyn',
+    'M': 'Manhattan',
+    'Q': 'Queens',
+    'SI': 'Staten Island'
+  }
+
   function ease(t){
     return (Math.sin((t+1.5)*Math.PI)+1.0) / 2.0;
+  }
+
+  function formatMoney(number) {
+    return '$' + number.toLocaleString();
   }
 
   function lerp(a, b, t) {
@@ -36,8 +48,15 @@ var App = (function() {
   App.prototype.init = function(){
     var _this = this;
     this.$el = $('#app');
+    this.$menu = $('#menu');
+    this.$stations = $('#stations-container');
     this.el = this.$el[0];
     this.interacted = false;
+
+    this.loadedLine = false;
+    this.selectedLine = false;
+    this.selectedStation = false;
+    this.highlightedStation = false;
 
     $.when(
       this.loadData()
@@ -46,6 +65,16 @@ var App = (function() {
       _this.loadUI(data);
       _this.loadScene(data);
     });
+  };
+
+  App.prototype.highlightStation = function($button){
+    var line = ""+$button.attr('data-line');
+    var stationIndex = parseInt($button.attr('data-index'));
+
+    // already highlighted
+    if (line === this.selectedLine && stationIndex === this.highlightedStation) return;
+
+
   };
 
   App.prototype.loadData = function(){
@@ -69,6 +98,18 @@ var App = (function() {
 
     $('.select-line').on('click', function(){
       _this.selectLine($(this));
+    });
+
+    $('.deselect-lines').on('click', function(){
+      _this.selectLine(false);
+    });
+
+    $('body').on('click', '.select-station', function(e){
+      _this.selectStation($(this));
+    });
+
+    $('body').on('mouseover', '.select-station', function(e){
+      _this.highlightStation($(this));
     });
 
     $('#app canvas').one('click mousedown pointerdown touchstart', function(e){
@@ -214,7 +255,7 @@ var App = (function() {
     this.controls.enabled = true;
     // this.controls.autoRotate = true;
     // this.controls.autoRotateSpeed = 1.0;
-    this.$el.addClass('started');
+    $('body').addClass('started');
   };
 
   App.prototype.onResize = function(){
@@ -231,7 +272,7 @@ var App = (function() {
     this.introStartTime = new Date().getTime() + 3000;
     this.introEndTime = this.introStartTime + this.opt.introDuration;
     this.introFinished = false;
-    this.$el.addClass('active');
+    $('body').addClass('active');
     this.render();
   };
 
@@ -335,17 +376,69 @@ var App = (function() {
     }
   };
 
+  App.prototype.renderStations = function(line){
+    if (line === this.loadedLine) return;
+
+    this.loadedLine = line;
+
+    this.$stations.empty();
+    var lines = this.lines;
+    var stations = lines[line].stations;
+
+    var html = '<ul class="stations">';
+    _.each(stations, function(station, i){
+      if (i > 0) {
+        var prev = stations[i-1];
+        if (prev.borough != station.borough) {
+          html += '<li class="borough">'+boroughs[prev.borough]+'</li>';
+          html += '<li class="borough">'+boroughs[station.borough]+'</li>';
+        }
+      }
+      html += '<li class="station">';
+        html += '<div class="title">'
+          html += '<button class="select-station" data-line="'+line+'" data-index="'+i+'">'+station.name+'</button>';
+          html += '<div class="routes">'
+            _.each(station.routes, function(route){
+              var routeLine = lines[route];
+              html += '<div class="route" style="background: #'+routeLine.color+'; color: #'+routeLine.textColor+';">'+route+'</div>'
+            });
+          html += '</div>';
+        html += '</div>';
+        html += '<div class="details">';
+          html += '<p>Median household income: <strong>'+formatMoney(station.income)+'</strong></p>';
+          html += '<p>Census tract: <strong>'+station.tract+'</strong></p>';
+        html += '</div>';
+      html += '</li>';
+    });
+    html += '</ul>';
+    this.$stations.html(html);
+  };
+
   App.prototype.selectLine = function($button){
     if (this.lineTransitioning === true) return;
 
     var _this = this;
-    var isSelected = $button.hasClass('selected');
     var selectedLine = false;
-    $('.select-line').removeClass('selected hidden');
-    if (!isSelected) {
-      $('.select-line').addClass('hidden');
-      $button.addClass('selected');
-      selectedLine = $button.text().trim();
+
+    if ($button !== false) {
+      var isSelected = $button.hasClass('selected');
+      $('.select-line').removeClass('selected hidden');
+      if (!isSelected) {
+        $('.select-line').addClass('hidden');
+        $button.addClass('selected');
+        selectedLine = $button.text().trim();
+      }
+    } else {
+      $('.select-line').removeClass('selected hidden');
+    }
+
+    this.selectedLine = selectedLine;
+
+    if (selectedLine===false) {
+      this.$menu.removeClass('lines');
+    } else {
+      this.$menu.addClass('lines');
+      this.renderStations(selectedLine);
     }
 
     this.lineTransitionStartTime = new Date().getTime();
@@ -368,6 +461,15 @@ var App = (function() {
       _this.lines[lineName].startStationOpacity = line.stationOpacity;
       _this.lines[lineName].targetStationOpacity = lineName === selectedLine ? 1.0 : 0;
     });
+  };
+
+  App.prototype.selectStation = function($button){
+    $('.station').removeClass('selected');
+    $button.closest('.station').addClass('selected');
+
+    this.highlightStation($button);
+
+
   };
 
   App.prototype.toggleMenu = function(){

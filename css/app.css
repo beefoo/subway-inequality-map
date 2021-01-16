@@ -52,9 +52,14 @@ hr {
   border-left: 1px solid #222;
   z-index: 1000;
   background: #111;
+  overflow: hidden;
+  overflow-y: auto;
 }
 .credits p {
   font-size: 0.9rem;
+}
+p.buttons {
+  margin: 0;
 }
 .toggle-menu {
   position: absolute;
@@ -80,7 +85,7 @@ hr {
   text-align: center;
   color: white;
   border-radius: 50%;
-  margin: 5px 5px 0 0;
+  margin: 3px 3px 0 0;
   font-weight: bold;
   border: 2px solid transparent;
   font-size: 1.3rem;
@@ -133,6 +138,50 @@ hr {
   top: 0;
   left: 0;
 }
+.menu .description {
+  max-height: 100vh;
+  opacity: 1;
+  transition: max-height 1s linear, opacity 1s linear;
+  overflow: hidden;
+}
+.menu .line-on {
+  display: none;
+}
+.menu.lines .line-on {
+  display: block;
+}
+.menu.lines .line-off {
+  display: none;
+}
+.menu.lines .description {
+  max-height: 50px;
+  opacity: 0;
+}
+.menu .deselect-lines {
+  background: #801e17;
+  color: white;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+  cursor: pointer;
+  display: inline-block;
+  border: 2px solid transparent;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  border-radius: 3px;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+}
+.menu.lines .deselect-lines {
+  animation: slideInDown 1s;
+  animation-delay: 1s;
+  animation-fill-mode: both;
+}
+.menu .deselect-lines:focus {
+  outline: none;
+  border-color: white;
+}
 @media (max-aspect-ratio: 4/3) {
   .app {
     width: 100%;
@@ -153,7 +202,7 @@ hr {
   opacity: 0;
   transition: opacity 2s ease-in-out;
 }
-.app.active canvas {
+body.active .app canvas {
   opacity: 1;
 }
 
@@ -169,7 +218,7 @@ hr {
   opacity: 1;
   transition: opacity 0.5s ease-in-out;
 }
-.app.active .loading {
+body.active .loading {
   opacity: 0;
 }
 .loading div {
@@ -239,8 +288,97 @@ hr {
   opacity: 0;
   transition: opacity 2s ease-in-out;
 }
-.app.started .toggle-autorotation {
+body.started .toggle-autorotation {
   opacity: 1;
+}
+.hide-before-start {
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+body.started .hide-before-start {
+  opacity: 1;
+}
+
+.stations {
+  opacity: 0;
+  animation: fadeIn 1s;
+  animation-delay: 1s;
+  animation-fill-mode: both;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.stations li {
+  margin: 0;
+  padding: 0;
+}
+.stations li.station {
+  border-top: 2px solid #444;
+  padding: 1rem 0;
+  box-sizing: border-box;
+}
+.stations li.borough {
+  padding: 0.5rem 0 1rem;
+  border-top: 2px solid #444;
+}
+.stations li.borough + li.borough {
+  padding: 1rem 0 0.5rem;
+  border-top: 2px dashed #333;
+}
+.stations button {
+  font-size: 1.2rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: white;
+  font-weight: bold;
+}
+.stations button:hover {
+  color: #FCCC0A;
+}
+.stations button:focus,
+.station.selected button {
+  border: 2px solid white;
+  outline: 0;
+  padding: 0.2rem 0.4rem;
+}
+.stations p {
+  margin: 0;
+}
+.stations p {
+  font-size: 1rem;
+}
+.stations p:first-child {
+  margin-top: 0.5rem;
+}
+.stations .route {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  color: white;
+  border-radius: 50%;
+  margin: 0 0 0 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  padding: 0;
+}
+.stations .title {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+.stations .details {
+  display: none;
+}
+.station.selected .details {
+  display: block;
 }
 
 @keyframes shakeX {
@@ -265,5 +403,26 @@ hr {
   80% {
     -webkit-transform: translate3d(5px, 0, 0);
     transform: translate3d(5px, 0, 0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
