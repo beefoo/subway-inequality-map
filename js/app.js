@@ -7,6 +7,7 @@ var App = (function() {
       dataUrl: 'data/sceneData.json',
       introDuration: 3000,
       transitionDuration: 600,
+      stationTransitionDuration: 3000,
       cameraDistance: 4000,
       inactiveLineOpacity: 0.2
     };
@@ -59,6 +60,8 @@ var App = (function() {
     this.highlightedStationIndex = false;
     this.highlightedStation = false;
     this.isHighlighting = false;
+    this.lineTransitioning = false;
+    this.stationTransitioning = false;
 
     $.when(
       this.loadData()
@@ -143,6 +146,13 @@ var App = (function() {
     var w = data.width;
     var h = data.height;
     var lines = data.lines;
+
+    this.mapWidth = w;
+    this.mapHeight = h;
+    this.x0 = -w * 0.5;
+    this.x1 = w * 0.5;
+    this.z0 = -h * 0.5;
+    this.z1 = h * 0.5;
 
     var renderer = new THREE.WebGLRenderer({ antialias: true });
     var elW = this.$el.width();
@@ -313,8 +323,6 @@ var App = (function() {
     // intro animation
     if (!this.introFinished) {
       this.renderIntro();
-    } else {
-      this.controls.update();
     }
 
     // line selection transition
@@ -322,6 +330,13 @@ var App = (function() {
       this.renderLineTransition();
     }
 
+    // fly to station
+    if (this.stationTransitioning) {
+      this.renderStationTransition();
+      this.controls.update();
+    }
+
+    // highlight animation
     if (this.isHighlighting) {
       this.renderHighlighter();
     }
@@ -465,8 +480,26 @@ var App = (function() {
     this.$stations.html(html);
   };
 
+  App.prototype.renderStationTransition = function(){
+    var now = new Date().getTime();
+    var t = norm(now, this.stationTransitionStartTime, this.stationTransitionEndTime);
+    var eased = ease(t);
+
+    var newPosition = this.stationStartPosition.clone();
+    newPosition.lerp(this.stationEndPosition, eased);
+    var newRotation = this.stationStartRotation.clone();
+    newRotation.slerp(this.stationEndRotation, eased);
+    this.camera.position.copy(newPosition);
+    this.camera.quaternion.copy(newRotation);
+
+    if (t >= 1.0) {
+      this.stationTransitioning = false;
+      this.controls.enabled = true;
+    }
+  };
+
   App.prototype.selectLine = function($button){
-    if (this.lineTransitioning === true) return;
+    if (this.lineTransitioning === true || this.stationTransitioning === true) return;
 
     var _this = this;
     var selectedLine = false;
@@ -483,6 +516,7 @@ var App = (function() {
       $('.select-line').removeClass('selected hidden');
     }
     this.selectedLine = selectedLine;
+    this.selectedStation = false;
 
     this.highlighter.visible = false;
     this.isHighlighting = false;
@@ -525,12 +559,58 @@ var App = (function() {
   };
 
   App.prototype.selectStation = function($button){
+    if (this.lineTransitioning === true || this.stationTransitioning === true) return;
+
+    var line = ""+$button.attr('data-line');
+    var stationIndex = parseInt($button.attr('data-index'));
+
+    // already selected
+    if (line === this.selectedLine && stationIndex === this.selectedStation) return;
+
+    var station = this.lines[line].stations[stationIndex];
+    if (!station) return;
+    this.selectedStation = stationIndex;
+
     $('.station').removeClass('selected');
     $button.closest('.station').addClass('selected');
 
     this.highlightStation($button);
 
+    var stationPosition = station.mesh.position;
+    // determine what part of the map the station is on
+    var nx = norm(stationPosition.x, this.x0, this.x1);
+    var nz = norm(stationPosition.z, this.z0, this.z1);
+    var threshold = 0.2;
+    var thresholdInv = 1.0 - threshold;
+    var cameraDistance = this.opt.cameraDistance * 0.25;
+    var targetPosition = stationPosition.clone();
+    // north side
+    if (nz < threshold) {
+      targetPosition.add(new THREE.Vector3(0, 0, -cameraDistance));
+    // south side
+    } else if (nz > thresholdInv) {
+      targetPosition.add(new THREE.Vector3(0, 0, cameraDistance));
+    // west side
+    } else if (nx < 0.5) {
+      targetPosition.add(new THREE.Vector3(-cameraDistance, 0, 0));
+    // east side
+    } else {
+      targetPosition.add(new THREE.Vector3(cameraDistance, 0, 0));
+    }
 
+    var targetObj = this.camera.clone();
+    targetObj.position.copy(targetPosition);
+    targetObj.lookAt(stationPosition);
+    var targetRotation = new THREE.Quaternion().copy(targetObj.quaternion);
+
+    this.stationTransitionStartTime = new Date().getTime();
+    this.stationTransitionEndTime = this.stationTransitionStartTime + this.opt.stationTransitionDuration;
+    this.stationStartPosition = this.camera.position.clone();
+    this.stationStartRotation = new THREE.Quaternion().copy(this.camera.quaternion);
+    this.stationEndPosition = targetPosition;
+    this.stationEndRotation = targetRotation;
+    this.stationTransitioning = true;
+    this.controls.enabled = false;
   };
 
   App.prototype.toggleMenu = function(){
