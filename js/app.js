@@ -20,7 +20,7 @@ var App = (function() {
     'M': 'Manhattan',
     'Q': 'Queens',
     'SI': 'Staten Island'
-  }
+  };
 
   function ease(t){
     return (Math.sin((t+1.5)*Math.PI)+1.0) / 2.0;
@@ -56,7 +56,9 @@ var App = (function() {
     this.loadedLine = false;
     this.selectedLine = false;
     this.selectedStation = false;
+    this.highlightedStationIndex = false;
     this.highlightedStation = false;
+    this.isHighlighting = false;
 
     $.when(
       this.loadData()
@@ -72,9 +74,26 @@ var App = (function() {
     var stationIndex = parseInt($button.attr('data-index'));
 
     // already highlighted
-    if (line === this.selectedLine && stationIndex === this.highlightedStation) return;
+    if (line === this.selectedLine && stationIndex === this.highlightedStationIndex) return;
 
+    var station = this.lines[line].stations[stationIndex];
+    if (!station) return;
 
+    this.highlightStationOff();
+    this.highlighter.position.copy(station.mesh.position);
+    this.highlighter.visible = true;
+    this.isHighlighting = true;
+    this.highlightStartTime = new Date().getTime();
+    this.highlightedStationIndex = stationIndex;
+    this.highlightedStation = station;
+    station.mesh.material.color.setHex(0xFCCC0A);
+  };
+
+  App.prototype.highlightStationOff = function(){
+    if (this.highlightedStation === false) return;
+    this.highlightedStation.mesh.material.color.set(this.highlightedStation.color);
+    this.highlightedStation = false;
+    this.highlightedStationIndex = false;
   };
 
   App.prototype.loadData = function(){
@@ -210,6 +229,7 @@ var App = (function() {
         sphere.position.copy(position);
         stations.add( sphere );
         lines[key].stations[i].mesh = sphere;
+        lines[key].stations[i].color = '#'+line.textColor;
       });
       lines[key].stationOpacity = 0;
       lines[key].targetStationOpacity = 0;
@@ -217,17 +237,28 @@ var App = (function() {
     scene.add(stations);
     this.lines = lines;
 
+    // create highlighter
+    var hGeometry = new THREE.SphereBufferGeometry( 20, 32, 32 );
+    var hMaterial = new THREE.MeshBasicMaterial( {color: 0xFCCC0A, transparent: true} );
+    var highlighter = new THREE.Mesh( hGeometry, hMaterial );
+    highlighter.material.opacity = 0;
+    highlighter.visible = false;
+    scene.add(highlighter);
+    this.highlighter = highlighter;
+
     var loader = new THREE.TextureLoader();
     loader.load(
       'img/subway_base_map_texture.png',
       // onLoad callback
       function (mapTexture) {
         var mapGeometry = new THREE.PlaneBufferGeometry(w, h, 32);
-        var mapMaterial = new THREE.MeshBasicMaterial( { map: mapTexture, side: THREE.DoubleSide } );
+        var mapMaterial = new THREE.MeshBasicMaterial( { map: mapTexture, side: THREE.DoubleSide, transparent: true } );
         var map = new THREE.Mesh(mapGeometry, mapMaterial);
         map.rotation.x = - Math.PI / 2;
         map.position.setY(-10);
+        map.renderOrder = -1; // force render first so it doesn't clip the highlighter
         scene.add(map);
+        _this.map = map;
         _this.onSceneLoaded();
       }
     );
@@ -291,11 +322,27 @@ var App = (function() {
       this.renderLineTransition();
     }
 
+    if (this.isHighlighting) {
+      this.renderHighlighter();
+    }
+
     this.renderer.render( this.scene, this.camera );
 
     requestAnimationFrame(function(){
       _this.render();
     });
+  };
+
+  App.prototype.renderHighlighter = function(){
+    var pulseDuration = 1000;
+    var now = new Date().getTime();
+    var delta = now - this.highlightStartTime;
+    var progress = (delta % pulseDuration) / pulseDuration;
+    var t = ease(progress);
+    var opacity = lerp(0.6, 0, t);
+    var scale = lerp(0, 4, t);
+    this.highlighter.material.opacity = opacity;
+    this.highlighter.scale.set( scale, scale, scale );
   };
 
   App.prototype.renderIntro = function(){
@@ -371,6 +418,10 @@ var App = (function() {
 
     });
 
+    // transition map
+    var mapOpacity = lerp(this.mapOpacityStart, this.mapOpacityEnd, t);
+    this.map.material.opacity = mapOpacity;
+
     if (t >= 1.0) {
       this.lineTransitioning = false;
     }
@@ -431,14 +482,24 @@ var App = (function() {
     } else {
       $('.select-line').removeClass('selected hidden');
     }
-
     this.selectedLine = selectedLine;
+
+    this.highlighter.visible = false;
+    this.isHighlighting = false;
+    this.highlightStationOff();
 
     if (selectedLine===false) {
       this.$menu.removeClass('lines');
     } else {
       this.$menu.addClass('lines');
       this.renderStations(selectedLine);
+    }
+
+    this.mapOpacityStart = 1.0;
+    this.mapOpacityEnd = 0.4;
+    if (selectedLine===false) {
+      this.mapOpacityStart = 0.4;
+      this.mapOpacityEnd = 1.0;
     }
 
     this.lineTransitionStartTime = new Date().getTime();
