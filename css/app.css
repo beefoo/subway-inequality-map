@@ -12,9 +12,11 @@ a {
 }
 h1 {
   letter-spacing: 0.667px;
+  font-size: 1.6rem;
+  margin: 0.67rem 0 -0.5rem;
 }
 p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1.4;
 }
 hr {
