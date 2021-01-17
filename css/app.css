@@ -211,6 +211,9 @@ p.buttons {
 body.active .app canvas {
   opacity: 1;
 }
+body.started .app canvas {
+  cursor: move;
+}
 
 .loading {
   display: block;
