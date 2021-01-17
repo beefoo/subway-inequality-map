@@ -157,23 +157,29 @@ p.buttons {
   max-height: 50px;
   opacity: 0;
 }
+.menu .deselect-lines-wrapper {
+  width: 380px;
+  background: #111;
+  position: fixed;
+  top: 0;
+  right: 20px;
+  z-index: 1000;
+  box-sizing: border-box;
+  opacity: 0;
+}
 .menu .deselect-lines {
   background: #801e17;
   color: white;
   font-weight: bold;
-  opacity: 0;
-  transition: opacity 2s ease-in-out;
   cursor: pointer;
   display: inline-block;
   border: 2px solid transparent;
   padding: 0.5rem 1rem;
   margin: 0;
   border-radius: 3px;
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
+  margin: 0.5rem 1rem;
 }
-.menu.lines .deselect-lines {
+.menu.lines .deselect-lines-wrapper {
   animation: slideInDown 1s;
   animation-delay: 1s;
   animation-fill-mode: both;
@@ -220,6 +226,7 @@ body.active .app canvas {
 }
 body.active .loading {
   opacity: 0;
+  z-index: -1;
 }
 .loading div {
   position: absolute;
