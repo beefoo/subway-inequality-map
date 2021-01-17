@@ -372,7 +372,7 @@ var App = (function() {
 
     var r = this.opt.cameraDistance;
     var pitch = lerp(Math.PI/2, Math.PI * 0.9, t);
-    var yaw = lerp(0, Math.PI/8, t);
+    var yaw = lerp(0, Math.PI/4, t);
 
     // var z = r * Math.cos(rad);
     // var y = r * Math.sin(rad);
