@@ -163,15 +163,18 @@ var App = (function() {
     this.el.appendChild( renderer.domElement );
     this.renderer = renderer;
 
+    var target = new THREE.Vector3(0, 0, 0);
     var cameraY = this.opt.cameraDistance;
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera( 40, elW/elH, 1, cameraY + 6000 );
     camera.position.set(0, cameraY, 0);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(target);
     this.scene = scene;
     this.camera = camera;
+    this.startingCameraPosition = camera.position.clone();
 
     var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target = target;
     controls.minDistance = 100;
     controls.maxDistance = cameraY + 1000;
     controls.maxPolarAngle = Math.PI / 2;
@@ -253,6 +256,7 @@ var App = (function() {
     var highlighter = new THREE.Mesh( hGeometry, hMaterial );
     highlighter.material.opacity = 0;
     highlighter.visible = false;
+    highlighter.renderOrder = 100; // always render last to retain transparency
     scene.add(highlighter);
     this.highlighter = highlighter;
 
@@ -381,6 +385,7 @@ var App = (function() {
     this.camera.lookAt(0, 0, 0);
 
     if (now >= this.introEndTime) {
+      this.startingCameraPosition = this.camera.position.clone();
       this.introFinished = true;
       this.onIntroFinished();
     }
@@ -487,10 +492,12 @@ var App = (function() {
 
     var newPosition = this.stationStartPosition.clone();
     newPosition.lerp(this.stationEndPosition, eased);
-    var newRotation = this.stationStartRotation.clone();
-    newRotation.slerp(this.stationEndRotation, eased);
+
+    var newLookAtPosition = this.stationStartLookAtPosition.clone();
+    newLookAtPosition.lerp(this.stationEndLookAtPosition, eased);
+
     this.camera.position.copy(newPosition);
-    this.camera.quaternion.copy(newRotation);
+    this.controls.target.copy(newLookAtPosition);
 
     if (t >= 1.0) {
       this.stationTransitioning = false;
@@ -524,6 +531,7 @@ var App = (function() {
 
     if (selectedLine===false) {
       this.$menu.removeClass('lines');
+      this.selectStation(false);
     } else {
       this.$menu.addClass('lines');
       this.renderStations(selectedLine);
@@ -561,54 +569,71 @@ var App = (function() {
   App.prototype.selectStation = function($button){
     if (this.lineTransitioning === true || this.stationTransitioning === true) return;
 
-    var line = ""+$button.attr('data-line');
-    var stationIndex = parseInt($button.attr('data-index'));
-
-    // already selected
-    if (line === this.selectedLine && stationIndex === this.selectedStation) return;
-
-    var station = this.lines[line].stations[stationIndex];
-    if (!station) return;
-    this.selectedStation = stationIndex;
-
+    var station = false;
+    var stationIndex = false;
     $('.station').removeClass('selected');
-    $button.closest('.station').addClass('selected');
 
-    this.highlightStation($button);
+    if ($button !== false) {
+      var line = ""+$button.attr('data-line');
+      stationIndex = parseInt($button.attr('data-index'));
 
-    var stationPosition = station.mesh.position;
-    // determine what part of the map the station is on
-    var nx = norm(stationPosition.x, this.x0, this.x1);
-    var nz = norm(stationPosition.z, this.z0, this.z1);
-    var threshold = 0.2;
-    var thresholdInv = 1.0 - threshold;
-    var cameraDistance = this.opt.cameraDistance * 0.25;
-    var targetPosition = stationPosition.clone();
-    // north side
-    if (nz < threshold) {
-      targetPosition.add(new THREE.Vector3(0, 0, -cameraDistance));
-    // south side
-    } else if (nz > thresholdInv) {
-      targetPosition.add(new THREE.Vector3(0, 0, cameraDistance));
-    // west side
-    } else if (nx < 0.5) {
-      targetPosition.add(new THREE.Vector3(-cameraDistance, 0, 0));
-    // east side
+      // already selected
+      if (line === this.selectedLine && stationIndex === this.selectedStation) return;
+
+      var station = this.lines[line].stations[stationIndex];
+      $button.closest('.station').addClass('selected');
+      this.highlightStation($button);
     } else {
-      targetPosition.add(new THREE.Vector3(cameraDistance, 0, 0));
+      this.highlightStationOff();
     }
 
-    var targetObj = this.camera.clone();
-    targetObj.position.copy(targetPosition);
-    targetObj.lookAt(stationPosition);
-    var targetRotation = new THREE.Quaternion().copy(targetObj.quaternion);
+    this.selectedStation = stationIndex;
+    var stationPosition = new THREE.Vector3(0, 0, 0);
+    var targetCameraPosition = this.startingCameraPosition.clone();
+    // targetCameraPosition = this.camera.position.clone();
+
+    // determine what part of the map the station is on
+    if (station !== false) {
+      stationPosition = station.mesh.position;
+      targetCameraPosition = stationPosition.clone();
+      var nx = norm(stationPosition.x, this.x0, this.x1);
+      var nz = norm(stationPosition.z, this.z0, this.z1);
+      var threshold = 0.2;
+      var thresholdInv = 1.0 - threshold;
+      var cameraDistance = this.opt.cameraDistance * 0.25;
+      // // north side
+      // if (nz < threshold) {
+      //   targetCameraPosition.add(new THREE.Vector3(0, 0, -cameraDistance));
+      // // south side
+      // } else if (nz > thresholdInv) {
+      //   targetCameraPosition.add(new THREE.Vector3(0, 0, cameraDistance));
+      // // west side
+      // } else if (nx < 0.5) {
+      //   targetCameraPosition.add(new THREE.Vector3(-cameraDistance, 0, 0));
+      // // east side
+      // } else {
+      //   targetCameraPosition.add(new THREE.Vector3(cameraDistance, 0, 0));
+      // }
+
+      // south side
+      if (nz > thresholdInv || nx > 0.5) {
+        targetCameraPosition.add(new THREE.Vector3(0, 0, cameraDistance));
+      // west side
+      } else {
+        targetCameraPosition.add(new THREE.Vector3(-cameraDistance, 0, 0));
+      }
+
+    }
+
+    var startLookAtPosition = this.controls.target.clone();
+    var targetLookAtPosition = stationPosition.clone();
 
     this.stationTransitionStartTime = new Date().getTime();
     this.stationTransitionEndTime = this.stationTransitionStartTime + this.opt.stationTransitionDuration;
     this.stationStartPosition = this.camera.position.clone();
-    this.stationStartRotation = new THREE.Quaternion().copy(this.camera.quaternion);
-    this.stationEndPosition = targetPosition;
-    this.stationEndRotation = targetRotation;
+    this.stationEndPosition = targetCameraPosition;
+    this.stationStartLookAtPosition = startLookAtPosition;
+    this.stationEndLookAtPosition = targetLookAtPosition;
     this.stationTransitioning = true;
     this.controls.enabled = false;
   };
