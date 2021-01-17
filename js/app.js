@@ -675,10 +675,10 @@ var App = (function() {
 
     if (isActive) {
       $menu.removeClass('active');
-      $link.text('Show details & menu');
+      $link.text('Show menu');
     } else {
       $menu.addClass('active');
-      $link.text('Close panel');
+      $link.text('Close menu');
     }
   };
 

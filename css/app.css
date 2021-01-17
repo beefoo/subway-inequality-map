@@ -71,7 +71,7 @@ p.buttons {
   line-height: 40px;
   text-align: center;
   font-size: 1.4rem;
-  left: -40px;
+  right: 440px;
   top: 180px;
   border: none;
   width: 180px;
@@ -196,11 +196,23 @@ p.buttons {
     right: -400px;
     transition: right 0.5s ease-in-out;
   }
+  .menu.lines .deselect-lines-wrapper {
+    display: none;
+  }
+  .menu.lines.active .deselect-lines-wrapper {
+    display: block;
+  }
   .toggle-menu {
     display: block;
+    right: -140px;
+    transition: right 0.5s ease-in-out;
+    z-index: 1000;
   }
   .menu.active {
     right: 0;
+  }
+  .menu.active ~ .toggle-menu {
+    right: 260px;
   }
 }
 
