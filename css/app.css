@@ -388,6 +388,66 @@ body.started .hide-before-start {
   display: block;
 }
 
+.station-info {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  max-width: 80%;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: #111;
+  border: 1px solid #333;
+  display: none;
+  z-index: 1000;
+  opacity: 0;
+}
+.station-info.active {
+  display: block;
+  animation: fadeIn 1s;
+  animation-delay: 3s;
+  animation-fill-mode: both;
+}
+.station-info h3 {
+  font-size: 2rem;
+  margin: 0;
+  padding: 0;
+  color: white;
+  font-weight: bold;
+}
+.station-info p {
+  margin: 0;
+}
+.station-info p {
+  font-size: 1.2rem;
+}
+.station-info p:first-child {
+  margin-top: 0.5rem;
+}
+.station-info .route {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  text-align: center;
+  color: white;
+  border-radius: 50%;
+  margin: 0 0 0 6px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  box-sizing: border-box;
+  padding: 0;
+}
+.station-info .title {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+.station-info small {
+  font-style: italic;
+}
+
 @keyframes shakeX {
   from,
   to {

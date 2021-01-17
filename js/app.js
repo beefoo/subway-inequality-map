@@ -51,6 +51,7 @@ var App = (function() {
     this.$el = $('#app');
     this.$menu = $('#menu');
     this.$stations = $('#stations-container');
+    this.$station = $('#station-info');
     this.el = this.$el[0];
     this.interacted = false;
 
@@ -447,6 +448,33 @@ var App = (function() {
     }
   };
 
+  App.prototype.renderStation = function(station){
+    var html = '';
+    if (station !== false) {
+      var lines = this.lines;
+      html += '<div class="station-info-inner">';
+        html += '<div class="title">'
+          html += '<h3>'+station.name+'</h3>';
+          html += '<div class="routes">'
+            _.each(station.routes, function(route){
+              var routeLine = lines[route];
+              html += '<div class="route" style="background: #'+routeLine.color+'; color: #'+routeLine.textColor+';">'+route+'</div>'
+            });
+          html += '</div>';
+        html += '</div>';
+        html += '<div class="details">';
+          html += '<p>Median household income: <strong>'+formatMoney(station.income)+'</strong></p>';
+          html += '<p>Census tract: <strong>'+station.tract+'</strong></p>';
+          html += '<p><small>Source: U.S. Census 2017 ACS 5-year estimates</small></p>';
+        html += '</div>';
+      html += '</div>';
+    }
+
+    if (station !== false) this.$station.addClass('active');
+    else this.$station.removeClass('active');
+    this.$station.html(html);
+  };
+
   App.prototype.renderStations = function(line){
     if (line === this.loadedLine) return;
 
@@ -583,8 +611,10 @@ var App = (function() {
       var station = this.lines[line].stations[stationIndex];
       $button.closest('.station').addClass('selected');
       this.highlightStation($button);
+      this.renderStation(station);
     } else {
       this.highlightStationOff();
+      this.renderStation(false);
     }
 
     this.selectedStation = stationIndex;
