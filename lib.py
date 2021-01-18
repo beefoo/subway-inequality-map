@@ -35,7 +35,7 @@ def getFilenames(fileString, verbose=True):
         print("Found %s files" % fileCount)
     return files
 
-def getHeatmap(xyzs, intensity=204, s=16, bins=1000):
+def getHeatmap(xyzs, intensity=204, s=18, bins=1000):
     a = np.array(xyzs)
     x, y, z = a.T
     z = z * intensity
