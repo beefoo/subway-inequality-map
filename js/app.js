@@ -9,7 +9,8 @@ var App = (function() {
       transitionDuration: 600,
       stationTransitionDuration: 3000,
       cameraDistance: 4000,
-      inactiveLineOpacity: 0.2
+      inactiveLineOpacity: 0.2,
+      autoRotate: false
     };
     this.opt = _.extend({}, defaults, config);
     this.init();
@@ -299,8 +300,10 @@ var App = (function() {
     $('.drag-icon').addClass('active');
     this.loadListeners();
     this.controls.enabled = true;
-    // this.controls.autoRotate = true;
-    // this.controls.autoRotateSpeed = 1.0;
+    if (this.opt.autoRotate) {
+      this.controls.autoRotate = true;
+      this.controls.autoRotateSpeed = 1.0;
+    }
     $('body').addClass('started');
   };
 
@@ -338,6 +341,8 @@ var App = (function() {
     // fly to station
     if (this.stationTransitioning) {
       this.renderStationTransition();
+      this.controls.update();
+    } else if (this.opt.autoRotate && this.controls.autoRotate) {
       this.controls.update();
     }
 
